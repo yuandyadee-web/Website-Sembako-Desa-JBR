@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Website Pembagian Sembako - Desa</title>
+  <style>
+    :root{
+      --bg1: #f0f7ff;
+      --bg2: #e6f3ff;
+      --card: #ffffff;
+      --primary: #0b74ff;
+      --accent: #2d9cdb;
+      --muted: #6b7280;
+      --glass: rgba(255,255,255,0.72);
+      --radius: 12px;
+      --shadow: 0 6px 18px rgba(13,38,63,0.12);
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+
+    /* Background */
+    body{
+      margin:0;
+      min-height:100vh;
+      background: linear-gradient(135deg,var(--bg1),var(--bg2));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    /* subtle pattern */
+    body::before{
+      content:"";
+      position:fixed; inset:0; z-index:-1;
+      background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 6px);
+      background-size:20px 20px, 6px 6px;
+      opacity:0.9;
+      pointer-events:none;
+    }
+
+    .app-wrap{
+      width:100%; max-width:1100px; display:grid; grid-template-columns: 380px 1fr; gap:20px;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+      overflow:hidden;
+    }
+
+    header.app-header{
+      grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px;
+    }
+    .brand{display:flex; gap:12px; align-items:center}
+    .logo{
+      width:48px; height:48px; border-radius:10px; background:linear-gradient(135deg,var(--primary),var(--accent)); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:20px; box-shadow:0 6px 18px rgba(11,116,255,0.18);
+    }
+    h1{font-size:18px; margin:0}
+    p.lead{margin:0;color:var(--muted); font-size:13px}
+
+    /* Left column (form) */
+    .form-column{display:flex; flex-direction:column; gap:12px}
+    form label{font-size:13px; color:#374151}
+    input[type="text"], input[type="date"], textarea, input[type="number"]{
+      width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6eefb; background:transparent; box-sizing:border-box; font-size:14px; outline:none;
+    }
+    textarea{min-height:80px; resize:vertical}
+    .row{display:flex; gap:10px}
+    .row > *{flex:1}
+    .btn{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; border:none; cursor:pointer; font-weight:600}
+    .btn-primary{background:var(--primary); color:white}
+    .btn-ghost{background:transparent; border:1px solid #e6eefb}
+    .btn-danger{background:#ff6b6b; color:white}
+    .small{font-size:13px; padding:7px 10px}
+
+    /* Right column (table) */
+    .table-wrap{display:flex; flex-direction:column; gap:12px}
+    .controls{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .search{flex:1}
+    table{width:100%; border-collapse:collapse; font-size:14px}
+    th, td{padding:8px 10px; text-align:left; border-bottom:1px solid #eef6ff}
+    th{font-size:13px; color:#374151}
+
+    .actions{display:flex; gap:6px}
+    .chip{display:inline-block; background:rgba(45,156,219,0.12); color:var(--accent); padding:6px 8px; border-radius:999px; font-weight:600}
+
+    footer.note{grid-column:1/-1; text-align:center; color:var(--muted); font-size:13px; margin-top:6px}
+
+    /* Login overlay */
+    .overlay{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg, rgba(3,7,18,0.45), rgba(3,7,18,0.45));}
+    .login-box{width:360px; background:var(--glass); backdrop-filter: blur(6px); border-radius:16px; padding:22px; box-shadow:0 12px 40px rgba(2,6,23,0.28)}
+    .login-box h2{margin:0 0 6px 0}
+    .muted{color:var(--muted); font-size:13px}
+
+    .top-right{display:flex; gap:8px; align-items:center}
+
+    /* responsive */
+    @media (max-width:920px){
+      .app-wrap{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+  <!-- Login overlay (muncul pertama kali) -->
+  <div id="loginOverlay" class="overlay" aria-hidden="false">
+    <div class="login-box">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h2>Masuk - Admin Desa</h2>
+          <div class="muted">Silakan masuk untuk mengelola data pembagian sembako.</div>
+        </div>
+        <button class="btn btn-ghost small" id="closeBtnOverlay">X</button>
+      </div>
+      <form id="loginForm" style="margin-top:14px; display:flex; flex-direction:column; gap:10px;">
+        <div>
+          <label>Username</label>
+          <input id="loginUser" type="text" value="admin" placeholder="admin" />
+        </div>
+        <div>
+          <label>Password</label>
+          <input id="loginPass" type="password" placeholder="password" />
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="btn btn-primary" type="submit">Login</button>
+          <button type="button" id="showDemo" class="btn btn-ghost small">Masuk Demo</button>
+        </div>
+        <div class="muted"><strong></strong></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="app-wrap" style="width:100%;">
+    <header class="card app-header">
+      <div class="brand">
+        <div class="logo">SD</div>
+        <div>
+          <h1>Pembagian Sembako - Kantor Desa JBR</h1>
+          <p class="lead"></p>
+        </div>
+      </div>
+      <div class="top-right">
+        <button id="btnClose" class="btn btn-ghost small" title="Tutup situs (cobalah, bisa dibatasi browser)">Close</button>
+        <button id="btnLogout" class="btn small">Logout</button>
+      </div>
+    </header>
+
+    <!-- form column -->
+    <section class="card form-column">
+      <h3 id="formTitle">Tambah Data Penerima</h3>
+      <form id="entryForm">
+        <input type="hidden" id="entryId" />
+        <label>Nama Penerima</label>
+        <input id="name" type="text" required placeholder="Nama lengkap" />
+
+        <label>NIK / No. Identitas</label>
+        <input id="nik" type="text" placeholder="Nomor NIK (opsional)" />
+
+        <label>Alamat</label>
+        <textarea id="address" placeholder="Alamat lengkap"></textarea>
+
+        <div class="row">
+          <div>
+            <label>Jumlah Paket</label>
+            <input id="jumlah" type="number" min="1" value="1" />
+          </div>
+          <div>
+            <label>Tanggal</label>
+            <input id="date" type="date" />
+          </div>
+        </div>
+
+        <label>Catatan (opsional)</label>
+        <input id="notes" type="text" placeholder="Contoh: KK, lansia, prioritas" />
+
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn btn-primary" id="saveBtn" type="submit">Simpan</button>
+          <button class="btn btn-ghost" id="resetBtn" type="button">Batal</button>
+          <button class="btn btn-ghost" id="fillSample" type="button">Isi Contoh</button>
+        </div>
+      </form>
+
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button id="exportCSV" class="btn small">Export CSV</button>
+        <button id="exportJSON" class="btn small btn-ghost">Export JSON</button>
+        <label class="btn small btn-ghost" style="cursor:pointer;">
+          Import JSON
+          <input id="importFile" type="file" accept="application/json" style="display:none" />
+        </label>
+        <button id="clearAll" class="btn small btn-danger">Hapus Semua</button>
+      </div>
+    </section>
+
+    <!-- table column -->
+    <section class="card table-wrap">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div class="controls">
+          <input id="search" class="search" placeholder="Cari nama / NIK / alamat..." />
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div class="chip" id="countChip">0 terdaftar</div>
+          <button id="printBtn" class="btn small btn-ghost">Cetak Daftar</button>
+        </div>
+      </div>
+
+      <div style="overflow:auto; max-height:520px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>NIK</th>
+              <th>Alamat</th>
+              <th>Jumlah</th>
+              <th>Tanggal</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+    </section>
+
+    <footer class="note card"></footer>
+  </div>
+
+  <script>
+    // ====== CONFIG ======
+    const LS_KEY = 'sembako_entries_v1';
+    const DEFAULT_CRED = {user:'admin', pass:'desa123'}; // ubah sesuai kebutuhan
+
+    // ====== STATE ======
+    let entries = [];
+    let editingId = null;
+
+    // ====== HELPERS ======
+    function saveToStorage(){
+      localStorage.setItem(LS_KEY, JSON.stringify(entries));
+      renderTable();
+    }
+    function loadFromStorage(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        entries = raw ? JSON.parse(raw) : [];
+      }catch(e){ entries = []; }
+    }
+
+    // ====== RENDER ======
+    function renderTable(filter=''){
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = '';
+      const f = filter.trim().toLowerCase();
+      const list = entries.filter(e => {
+        if(!f) return true;
+        return (e.name||'').toLowerCase().includes(f) || (e.nik||'').toLowerCase().includes(f) || (e.address||'').toLowerCase().includes(f);
+      }).sort((a,b)=> (b.date||'') > (a.date||'') ? -1:1);
+      for(const e of list){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${escapeHtml(e.name||'')}</td>
+                        <td>${escapeHtml(e.nik||'')}</td>
+                        <td>${escapeHtml(e.address||'')}</td>
+                        <td>${escapeHtml(String(e.jumlah||''))}</td>
+                        <td>${escapeHtml(e.date||'')}</td>
+                        <td class="actions">
+                          <button class="btn small" onclick="onEdit('${e.id}')">Edit</button>
+                          <button class="btn small btn-danger" onclick="onDelete('${e.id}')">Hapus</button>
+                        </td>`;
+        tbody.appendChild(tr);
+      }
+      document.getElementById('countChip').textContent = list.length + ' terdaftar';
+    }
+
+    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // ====== CRUD ACTIONS ======
+    function onEdit(id){
+      const item = entries.find(x=>x.id===id);
+      if(!item) return alert('Data tidak ditemukan');
+      editingId = id;
+      document.getElementById('formTitle').textContent = 'Edit Data Penerima';
+      document.getElementById('entryId').value = item.id;
+      document.getElementById('name').value = item.name;
+      document.getElementById('nik').value = item.nik;
+      document.getElementById('address').value = item.address;
+      document.getElementById('jumlah').value = item.jumlah;
+      document.getElementById('date').value = item.date;
+      document.getElementById('notes').value = item.notes;
+      document.getElementById('saveBtn').textContent = 'Update';
+    }
+    function onDelete(id){
+      if(!confirm('Hapus data ini?')) return;
+      entries = entries.filter(x=>x.id!==id);
+      saveToStorage();
+    }
+
+    document.getElementById('entryForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      const id = document.getElementById('entryId').value || String(Date.now());
+      const obj = {
+        id,
+        name: document.getElementById('name').value.trim(),
+        nik: document.getElementById('nik').value.trim(),
+        address: document.getElementById('address').value.trim(),
+        jumlah: Number(document.getElementById('jumlah').value) || 1,
+        date: document.getElementById('date').value || new Date().toISOString().slice(0,10),
+        notes: document.getElementById('notes').value.trim()
+      };
+      if(!obj.name){ return alert('Nama penerima harus diisi'); }
+      const exists = entries.find(x=>x.id===id);
+      if(exists){
+        // update
+        entries = entries.map(x => x.id===id ? obj : x);
+      }else{
+        entries.push(obj);
+      }
+      editingId = null;
+      resetForm();
+      saveToStorage();
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', ()=>{
+      if(editingId && !confirm('Batalkan edit?')) return;
+      editingId = null; resetForm();
+    });
+    document.getElementById('fillSample').addEventListener('click', ()=>{
+      document.getElementById('name').value = 'Slamet Hariyanto';
+      document.getElementById('nik').value = '3201xxxxxxxxxxxx';
+      document.getElementById('address').value = 'Dusun II, RT 03 RW 01';
+      document.getElementById('jumlah').value = 1;
+      document.getElementById('date').value = new Date().toISOString().slice(0,10);
+      document.getElementById('notes').value = 'Wanita lansia';
+    });
+
+    function resetForm(){
+      document.getElementById('entryId').value='';
+      document.getElementById('entryForm').reset();
+      document.getElementById('formTitle').textContent = 'Tambah Data Penerima';
+      document.getElementById('saveBtn').textContent = 'Simpan';
+    }
+
+    // ====== EXPORT / IMPORT ======
+    function exportCSV(){
+      if(entries.length===0) return alert('Data kosong');
+      const header = ['Nama','NIK','Alamat','Jumlah','Tanggal','Catatan'];
+      const rows = entries.map(e => [e.name,e.nik,e.address,String(e.jumlah),e.date,e.notes]);
+      const csv = [header, ...rows].map(r => r.map(cell => '"'+String(cell||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'sembako_data.csv'; a.click(); URL.revokeObjectURL(url);
+    }
+    function exportJSON(){
+      const blob = new Blob([JSON.stringify(entries, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'sembako_data.json'; a.click(); URL.revokeObjectURL(url);
+    }
+    document.getElementById('exportCSV').addEventListener('click', exportCSV);
+    document.getElementById('exportJSON').addEventListener('click', exportJSON);
+
+    document.getElementById('importFile').addEventListener('change', function(e){
+      const f = e.target.files[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = function(){
+        try{
+          const data = JSON.parse(reader.result);
+          if(!Array.isArray(data)) return alert('File tidak valid (harus array JSON)');
+          // simple merge
+          data.forEach(item => { if(!item.id) item.id = String(Date.now()+Math.random()); });
+          entries = entries.concat(data);
+          saveToStorage();
+          alert('Import selesai');
+        }catch(err){ alert('Gagal membaca file JSON: '+err.message); }
+      };
+      reader.readAsText(f);
+      e.target.value = '';
+    });
+
+    document.getElementById('clearAll').addEventListener('click', ()=>{
+      if(!confirm('Hapus semua data? Tindakan ini tidak bisa dibatalkan.')) return;
+      entries = []; saveToStorage();
+    });
+
+    document.getElementById('printBtn').addEventListener('click', ()=>{
+      const w = window.open('', '_blank');
+      const html = `<!doctype html><html><head><meta charset=\"utf-8\"><title>Print - Daftar Sembako</title><style>body{font-family:sans-serif;padding:18px}table{width:100%;border-collapse:collapse}th,td{padding:6px;border:1px solid #ccc;text-align:left}</style></head><body><h2>Daftar Penerima Sembako</h2>${renderPrintable()}<p>Dicetak: ${new Date().toLocaleString()}</p></body></html>`;
+      w.document.open(); w.document.write(html); w.document.close();
+      w.focus();
+    });
+
+    function renderPrintable(){
+      if(entries.length===0) return '<p>Tidak ada data</p>';
+      const rows = entries.map(e => `<tr><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.nik)}</td><td>${escapeHtml(e.address)}</td><td>${escapeHtml(String(e.jumlah))}</td><td>${escapeHtml(e.date)}</td></tr>`).join('');
+      return `<table><thead><tr><th>Nama</th><th>NIK</th><th>Alamat</th><th>Jumlah</th><th>Tanggal</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    // ====== SEARCH ======
+    document.getElementById('search').addEventListener('input', (e)=>{
+      renderTable(e.target.value);
+    });
+
+    // ====== LOGIN / LOGOUT ======
+    const loginOverlay = document.getElementById('loginOverlay');
+    document.getElementById('loginForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      const u = document.getElementById('loginUser').value.trim();
+      const p = document.getElementById('loginPass').value;
+      if(u===DEFAULT_CRED.user && p===DEFAULT_CRED.pass){
+        loginOverlay.style.display = 'none';
+        initApp();
+      }else{
+        alert('Kredensial salah. Gunakan admin / desa123 (atau ubah DEFAULT_CRED di file)');
+      }
+    });
+    document.getElementById('showDemo').addEventListener('click', ()=>{
+      // masuk demo tanpa validasi (untuk belajar)
+      loginOverlay.style.display = 'none';
+      initApp();
+    });
+    document.getElementById('btnLogout').addEventListener('click', ()=>{
+      if(!confirm('Yakin logout?')) return; location.reload();
+    });
+    document.getElementById('closeBtnOverlay').addEventListener('click', tryClose);
+    document.getElementById('btnClose').addEventListener('click', tryClose);
+
+    function tryClose(){
+      // window.close akan bekerja bila jendela dibuka via script. Sebagian besar browser memblokirnya.
+      try{
+        window.close();
+        // jika belum tertutup, tampilkan pesan dan kosongkan konten
+        setTimeout(()=>{
+          if(!window.closed){
+            document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;"><div style="text-align:center;"><h2>Terima kasih</h2><p>Halaman ini ditutup secara lokal.</p></div></div>';
+          }
+        }, 300);
+      }catch(e){
+        document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;"><div style="text-align:center;"><h2>Terima kasih</h2><p>Halaman ini ditutup secara lokal.</p></div></div>';
+      }
+    }
+
+    // ====== BOOTSTRAP APP ======
+    function initApp(){
+      loadFromStorage();
+      renderTable();
+      // isi tanggal default
+      const dateEl = document.getElementById('date'); if(dateEl) dateEl.value = new Date().toISOString().slice(0,10);
+    }
+
+    // init if already logged in (for example demo)
+    if(!loginOverlay.style.display || loginOverlay.style.display !== 'none'){
+      // show login overlay (already visible by default)
+    } else {
+      initApp();
+    }
+
+    // untuk dapat mengakses fungsi dari HTML inline (edit/hapus)
+    window.onEdit = onEdit; window.onDelete = onDelete;
+  </script>
+</body>
+</html>
